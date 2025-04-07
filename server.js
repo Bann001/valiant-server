@@ -69,18 +69,30 @@ const reportRoutes = require('./routes/reports');
 // Connect to MongoDB
 const connectDB = async () => {
   try {
+    console.log('Attempting to connect to MongoDB...');
+    console.log('MongoDB URI format check:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
+    
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 15000, // Timeout after 15s instead of 30s
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      family: 4 // Use IPv4, skip trying IPv6
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+      family: 4
     });
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log('Database name:', conn.connection.name);
+    console.log('Connection state:', conn.connection.readyState);
 
     // Add connection error handlers
     mongoose.connection.on('error', err => {
       console.error('MongoDB connection error:', err);
+      console.error('Error details:', {
+        name: err.name,
+        message: err.message,
+        code: err.code,
+        state: mongoose.connection.readyState
+      });
     });
 
     mongoose.connection.on('disconnected', () => {
@@ -88,12 +100,17 @@ const connectDB = async () => {
     });
 
     mongoose.connection.on('reconnected', () => {
-      console.log('MongoDB reconnected');
+      console.log('MongoDB reconnected successfully');
     });
 
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    console.error('MongoDB URI:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    console.error('MongoDB URI format:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
     process.exit(1);
   }
 };
