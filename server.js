@@ -12,17 +12,22 @@ const app = express();
 
 // Enable CORS - Before any routes
 app.use(cors({
-  origin: true, // Allow all origins during development
+  origin: '*', // Allow all origins during development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
-// Body parser
-app.use(express.json());
+// Body parser with increased limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Add MIME type headers
 app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+
   if (req.url.endsWith('.js')) {
     res.setHeader('Content-Type', 'application/javascript');
   } else if (req.url.endsWith('.jsx')) {
@@ -30,6 +35,12 @@ app.use((req, res, next) => {
   } else if (req.url.endsWith('.mjs')) {
     res.setHeader('Content-Type', 'application/javascript');
   }
+
+  // Handle OPTIONS method
+  if ('OPTIONS' === req.method) {
+    return res.status(200).send();
+  }
+
   next();
 });
 
@@ -57,8 +68,8 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use internal MongoDB URL format for Coolify with authentication
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1Vjl59eWLsiceEGU37t9Ys5L9EjW@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/?authSource=admin&directConnection=true';
+    // Use MongoDB connection string from Compass
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -73,10 +84,7 @@ const connectDB = async () => {
       retryWrites: true,
       w: 'majority',
       authSource: 'admin',
-      auth: {
-        username: 'root',
-        password: process.env.MONGODB_PASSWORD || 'sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW'
-      }
+      directConnection: true
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);

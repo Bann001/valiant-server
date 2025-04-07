@@ -9,14 +9,22 @@ const asyncHandler = fn => (req, res, next) => {
     console.error('Auth route error:', error);
     res.status(500).json({
       success: false,
-      message: 'Authentication error',
+      message: error.message || 'Authentication error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   });
 };
 
 // Mount routes
-router.post('/login', login);
-router.get('/me', protect, getMe);
+router.post('/login', asyncHandler(login));
+router.get('/me', protect, asyncHandler(getMe));
+
+// Add an explicit 404 handler for this router
+router.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found in auth routes`
+  });
+});
 
 module.exports = router; 
