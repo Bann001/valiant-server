@@ -69,9 +69,11 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use direct connection URL with encoded password
-    const MONGODB_PASSWORD = encodeURIComponent(process.env.MONGODB_PASSWORD);
-    const MONGODB_URI = `mongodb://root:${MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true&ssl=false`;
+    // Use MONGODB_URI directly from environment variables
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (!MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -83,9 +85,8 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       family: 4,
-      ssl: false,
-      authSource: 'admin',
-      authMechanism: 'DEFAULT'
+      tls: false,
+      authSource: process.env.MONGODB_AUTH_SOURCE || 'admin'
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
