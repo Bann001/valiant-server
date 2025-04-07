@@ -18,15 +18,42 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5000',
-    'https://bann001.github.io',
-    'https://valiant-api.onrender.com',
-    'https://bann001.github.io/valiant',
-    'https://bann001.github.io/valiant/'
+    'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
+    'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600 // Cache preflight requests for 10 minutes
 }));
+
+// Add CORS headers middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Add MIME type headers
+app.use((req, res, next) => {
+  if (req.url.endsWith('.js')) {
+    res.setHeader('Content-Type', 'application/javascript');
+  } else if (req.url.endsWith('.jsx')) {
+    res.setHeader('Content-Type', 'application/javascript');
+  } else if (req.url.endsWith('.mjs')) {
+    res.setHeader('Content-Type', 'application/javascript');
+  }
+  next();
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
