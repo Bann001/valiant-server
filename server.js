@@ -139,17 +139,26 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, message: 'Server Error' });
+  console.error('Error:', err);
+  console.error('Stack:', err.stack);
+  res.status(err.status || 500).json({ 
+    success: false, 
+    message: err.message || 'Server Error',
+    error: process.env.NODE_ENV === 'development' ? err : undefined
+  });
 });
 
-// 404 handler
+// 404 handler - This should be after all valid routes
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
+  console.log('404 Not Found:', req.method, req.url);
+  res.status(404).json({ 
+    success: false, 
+    message: `Route ${req.method} ${req.url} not found` 
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
