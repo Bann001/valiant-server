@@ -57,8 +57,8 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use internal MongoDB URL format for Coolify
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb-database:27017/valiant';
+    // Use internal MongoDB URL format for Coolify with authentication
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW@mongodb-database:27017/valiant?authSource=admin';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -71,7 +71,12 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
       family: 4,
       retryWrites: true,
-      w: 'majority'
+      w: 'majority',
+      authSource: 'admin',
+      auth: {
+        username: 'root',
+        password: process.env.MONGODB_PASSWORD || 'sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW'
+      }
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -85,12 +90,18 @@ const connectDB = async () => {
         name: err.name,
         message: err.message,
         code: err.code,
-        state: mongoose.connection.readyState
+        state: mongoose.connection.readyState,
+        host: mongoose.connection.host
       });
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.log('MongoDB disconnected');
+      console.log('MongoDB disconnected. Attempting to reconnect...');
+      setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
+    });
+
+    mongoose.connection.on('connected', () => {
+      console.log('MongoDB connected successfully');
     });
 
   } catch (error) {
@@ -101,8 +112,9 @@ const connectDB = async () => {
       code: error.code,
       stack: error.stack
     });
-    // Don't exit the process, just log the error
-    console.error('MongoDB connection failed, but server will continue running');
+    // Don't exit the process, just log the error and try to reconnect
+    console.error('MongoDB connection failed, attempting to reconnect in 5 seconds...');
+    setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
   }
 };
 
