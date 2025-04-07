@@ -1,8 +1,7 @@
 const express = require('express');
+const router = express.Router();
 const { login, getMe } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
-
-const router = express.Router();
 
 // Error handler middleware
 const asyncHandler = fn => (req, res, next) => {
@@ -16,14 +15,8 @@ const asyncHandler = fn => (req, res, next) => {
   });
 };
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login', asyncHandler(login));
-
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', protect, asyncHandler(getMe));
+// Mount routes
+router.post('/login', login);
+router.get('/me', protect, getMe);
 
 module.exports = router; 

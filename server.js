@@ -58,7 +58,7 @@ const connectDB = async () => {
     console.log('Attempting to connect to MongoDB...');
     
     // Use internal MongoDB URL format for Coolify
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/valiant';
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb-database:27017/valiant';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -69,7 +69,9 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4
+      family: 4,
+      retryWrites: true,
+      w: 'majority'
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
