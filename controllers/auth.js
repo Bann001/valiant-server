@@ -37,10 +37,16 @@ exports.login = async (req, res) => {
     // Check MongoDB connection state
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected. Current state:', mongoose.connection.readyState);
-      return res.status(500).json({
-        success: false,
-        message: 'Database connection error. Please try again.'
-      });
+      // Try to reconnect
+      try {
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/valiant');
+      } catch (connError) {
+        console.error('Failed to reconnect to database:', connError);
+        return res.status(500).json({
+          success: false,
+          message: 'Database connection error. Please try again.'
+        });
+      }
     }
 
     const { email, password } = req.body;
@@ -54,8 +60,10 @@ exports.login = async (req, res) => {
     }
 
     console.log('Looking up user in database...');
-    // Find user
-    const user = await User.findOne({ email }).select('+password');
+    // Find user with timeout
+    const user = await User.findOne({ email })
+      .select('+password')
+      .maxTimeMS(5000); // 5 second timeout
 
     if (!user) {
       console.log('No user found with email:', email);
@@ -104,6 +112,15 @@ exports.login = async (req, res) => {
       code: error.code,
       stack: error.stack
     });
+
+    // Check if it's a timeout error
+    if (error.name === 'MongoTimeoutError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Database operation timed out. Please try again.'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Database connection error. Please try again.'

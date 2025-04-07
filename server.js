@@ -57,24 +57,24 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use MONGODB_URI from environment if available, otherwise construct it
-    const MONGODB_URI = process.env.MONGODB_URI || `mongodb://root:${process.env.MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin`;
-    console.log('MongoDB Connection String (without password):', MONGODB_URI.replace(/(?<=:\/\/.+:).+(?=@)/, '****'));
+    // Use internal MongoDB URL format for Coolify
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/valiant';
+    
+    // Log connection attempt (without sensitive data)
+    const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
+    console.log('Connecting to MongoDB:', sanitizedUri);
     
     const conn = await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4,
-      retryWrites: true,
-      w: 'majority'
+      family: 4
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log('Database name:', conn.connection.name);
     console.log('Connection state:', conn.connection.readyState);
-    console.log('MongoDB connection options:', conn.connection.getOptions());
 
     // Add connection error handlers
     mongoose.connection.on('error', err => {
@@ -83,23 +83,12 @@ const connectDB = async () => {
         name: err.name,
         message: err.message,
         code: err.code,
-        state: mongoose.connection.readyState,
-        host: mongoose.connection.host,
-        port: mongoose.connection.port
+        state: mongoose.connection.readyState
       });
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.log('MongoDB disconnected. Attempting to reconnect...');
-      // Attempt to reconnect
-      setTimeout(() => {
-        console.log('Attempting to reconnect to MongoDB...');
-        connectDB();
-      }, 5000);
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.log('MongoDB reconnected successfully');
+      console.log('MongoDB disconnected');
     });
 
   } catch (error) {
@@ -108,8 +97,7 @@ const connectDB = async () => {
       name: error.name,
       message: error.message,
       code: error.code,
-      stack: error.stack,
-      state: mongoose.connection ? mongoose.connection.readyState : 'No connection'
+      stack: error.stack
     });
     // Don't exit the process, just log the error
     console.error('MongoDB connection failed, but server will continue running');
