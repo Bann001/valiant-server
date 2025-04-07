@@ -12,33 +12,34 @@ const app = express();
 
 // Enable CORS - Before any routes
 app.use(cors({
-  origin: '*', // Allow all origins during development
+  origin: ['http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io', 'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
-// Body parser with increased limit
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Add MIME type headers
+// Add security headers
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-
-  if (req.url.endsWith('.js')) {
-    res.setHeader('Content-Type', 'application/javascript');
-  } else if (req.url.endsWith('.jsx')) {
-    res.setHeader('Content-Type', 'application/javascript');
-  } else if (req.url.endsWith('.mjs')) {
-    res.setHeader('Content-Type', 'application/javascript');
+  // Set specific origin based on request
+  const origin = req.headers.origin;
+  if (origin && (
+    origin.includes('o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io') ||
+    origin.includes('vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io')
+  )) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
-  // Handle OPTIONS method
-  if ('OPTIONS' === req.method) {
-    return res.status(200).send();
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
   next();
@@ -68,9 +69,9 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use direct connection URL from MongoDB Compass
-    const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
-    const MONGODB_URI = `mongodb://root:${MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true`;
+    // Use direct connection URL with encoded password
+    const MONGODB_PASSWORD = encodeURIComponent(process.env.MONGODB_PASSWORD);
+    const MONGODB_URI = `mongodb://root:${MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true&ssl=false`;
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -82,10 +83,9 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       family: 4,
-      retryWrites: true,
-      w: 'majority',
+      ssl: false,
       authSource: 'admin',
-      directConnection: true
+      authMechanism: 'DEFAULT'
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -107,10 +107,6 @@ const connectDB = async () => {
     mongoose.connection.on('disconnected', () => {
       console.log('MongoDB disconnected. Attempting to reconnect...');
       setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
-    });
-
-    mongoose.connection.on('connected', () => {
-      console.log('MongoDB connected successfully');
     });
 
   } catch (error) {
