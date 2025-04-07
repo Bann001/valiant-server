@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const employeeSchema = new mongoose.Schema({
+  employeeId: {
+    type: String,
+    unique: true
+  },
   firstName: {
     type: String,
     required: [true, 'First name is required']
@@ -56,6 +60,22 @@ const employeeSchema = new mongoose.Schema({
   profileImage: String
 }, {
   timestamps: true
+});
+
+// Auto-generate employeeId before saving a new document
+employeeSchema.pre('save', async function (next) {
+  if (!this.employeeId) {
+    const lastEmployee = await this.constructor.findOne().sort({ employeeId: -1 });
+
+    if (lastEmployee && lastEmployee.employeeId) {
+      const lastIdNumber = parseInt(lastEmployee.employeeId.replace('EMP', ''), 10);
+      this.employeeId = `EMP${String(lastIdNumber + 1).padStart(3, '0')}`;
+    } else {
+      this.employeeId = 'EMP001';
+    }
+  }
+
+  next();
 });
 
 module.exports = mongoose.model('Employee', employeeSchema);
