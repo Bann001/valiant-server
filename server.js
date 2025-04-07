@@ -59,12 +59,12 @@ const connectDB = async () => {
     
     // Use MONGODB_URI from environment if available, otherwise construct it
     const MONGODB_URI = process.env.MONGODB_URI || `mongodb://root:${process.env.MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin`;
-    console.log('MongoDB URI format check:', MONGODB_URI ? 'URI is set' : 'URI is missing');
+    console.log('MongoDB Connection String (without password):', MONGODB_URI.replace(/(?<=:\/\/.+:).+(?=@)/, '****'));
     
     const conn = await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       family: 4,
       retryWrites: true,
@@ -74,6 +74,7 @@ const connectDB = async () => {
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log('Database name:', conn.connection.name);
     console.log('Connection state:', conn.connection.readyState);
+    console.log('MongoDB connection options:', conn.connection.getOptions());
 
     // Add connection error handlers
     mongoose.connection.on('error', err => {
@@ -82,12 +83,19 @@ const connectDB = async () => {
         name: err.name,
         message: err.message,
         code: err.code,
-        state: mongoose.connection.readyState
+        state: mongoose.connection.readyState,
+        host: mongoose.connection.host,
+        port: mongoose.connection.port
       });
     });
 
     mongoose.connection.on('disconnected', () => {
       console.log('MongoDB disconnected. Attempting to reconnect...');
+      // Attempt to reconnect
+      setTimeout(() => {
+        console.log('Attempting to reconnect to MongoDB...');
+        connectDB();
+      }, 5000);
     });
 
     mongoose.connection.on('reconnected', () => {
@@ -96,10 +104,12 @@ const connectDB = async () => {
 
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    console.error('Error details:', {
+    console.error('Full error details:', {
       name: error.name,
       message: error.message,
-      code: error.code
+      code: error.code,
+      stack: error.stack,
+      state: mongoose.connection ? mongoose.connection.readyState : 'No connection'
     });
     // Don't exit the process, just log the error
     console.error('MongoDB connection failed, but server will continue running');

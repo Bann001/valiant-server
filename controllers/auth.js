@@ -32,31 +32,31 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
-    console.log('Login attempt with body:', req.body);
-    const { email, password } = req.body;
+    console.log('Login attempt for:', req.body.email);
 
-    // Validate email & password
-    if (!email || !password) {
-      console.log('Missing email or password');
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide an email and password'
-      });
-    }
-
-    // Check MongoDB connection
+    // Check MongoDB connection state
     if (mongoose.connection.readyState !== 1) {
-      console.error('MongoDB not connected. Current state:', mongoose.connection.readyState);
+      console.error('Database not connected. Current state:', mongoose.connection.readyState);
       return res.status(500).json({
         success: false,
         message: 'Database connection error. Please try again.'
       });
     }
 
-    // Check for user
-    console.log('Finding user with email:', email);
-    const user = await User.findOne({ email }).select('+password').maxTimeMS(20000);
-    
+    const { email, password } = req.body;
+
+    // Validate email & password
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an email and password'
+      });
+    }
+
+    console.log('Looking up user in database...');
+    // Find user
+    const user = await User.findOne({ email }).select('+password');
+
     if (!user) {
       console.log('No user found with email:', email);
       return res.status(401).json({
@@ -65,43 +65,48 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log('User found, comparing passwords...');
     // Check if password matches
-    console.log('Comparing passwords...');
     const isMatch = await bcrypt.compare(password, user.password);
-    
+
     if (!isMatch) {
-      console.log('Password does not match');
+      console.log('Password does not match for user:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
 
+    console.log('Password matched, generating token...');
     // Create token
-    console.log('Creating JWT token...');
     const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET || 'your-jwt-secret',
-      { expiresIn: process.env.JWT_EXPIRE || '24h' }
+      { id: user._id },
+      process.env.JWT_SECRET || 'your_jwt_secret',
+      {
+        expiresIn: process.env.JWT_EXPIRE || '24h'
+      }
     );
 
-    console.log('Login successful for user:', user.email);
+    // Remove password from output
+    user.password = undefined;
+
+    console.log('Login successful for user:', email);
     res.status(200).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      user
     });
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
-      message: 'Server error during login',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Database connection error. Please try again.'
     });
   }
 };
@@ -112,16 +117,15 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-
     res.status(200).json({
       success: true,
       data: user
     });
-  } catch (err) {
-    console.error('Error in getMe:', err);
+  } catch (error) {
+    console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Error retrieving user data'
     });
   }
 };
