@@ -6,34 +6,20 @@ const path = require('path');
 const multer = require('multer');
 
 // Load env vars
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
 
 const app = express();
 
-// Body parser
-app.use(express.json());
-
-// Enable CORS with specific options
+// Enable CORS - Before any routes
 app.use(cors({
-  origin: 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
+  origin: true, // Allow all origins during development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range']
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
-// Remove the dynamic CORS middleware since we're using a fixed origin
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
+// Body parser
+app.use(express.json());
 
 // Add MIME type headers
 app.use((req, res, next) => {
@@ -49,7 +35,7 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  res.status(200).json({ status: 'ok' });
 });
 
 // File upload middleware
@@ -131,21 +117,22 @@ app.use('/api/reports', reportRoutes);
 
 // Route for testing the server
 app.get('/', (req, res) => {
-  res.send('API is running...');
+  res.json({ message: 'Valiant API Server' });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: 'Server Error' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
