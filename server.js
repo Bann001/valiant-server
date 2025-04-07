@@ -15,45 +15,23 @@ app.use(express.json());
 
 // Enable CORS with specific options
 app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:5000',
-      'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
-      'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 600 // Cache preflight requests for 10 minutes
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 }));
 
-// Add CORS headers middleware
+// Remove the dynamic CORS middleware since we're using a fixed origin
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
+  res.header('Access-Control-Allow-Origin', 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io');
+  res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
   
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  
   next();
 });
 
