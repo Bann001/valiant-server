@@ -44,26 +44,33 @@ exports.login = async (req, res) => {
       });
     }
 
-    console.log('Checking MongoDB connection status:', mongoose.connection.readyState);
-    
-    // Check for user
-    console.log('Attempting to find user with email:', email);
-    const user = await User.findOne({ email }).select('+password').maxTimeMS(5000);
-    console.log('User found:', user ? { id: user._id, email: user.email } : 'No user found');
+    // Check MongoDB connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error('MongoDB not connected. Current state:', mongoose.connection.readyState);
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error. Please try again.'
+      });
+    }
 
+    // Check for user
+    console.log('Finding user with email:', email);
+    const user = await User.findOne({ email }).select('+password').maxTimeMS(20000);
+    
     if (!user) {
+      console.log('No user found with email:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
 
-    // For debugging, log the password comparison
+    // Check if password matches
     console.log('Comparing passwords...');
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match result:', isMatch);
-
+    
     if (!isMatch) {
+      console.log('Password does not match');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -74,11 +81,11 @@ exports.login = async (req, res) => {
     console.log('Creating JWT token...');
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE }
+      process.env.JWT_SECRET || 'your-jwt-secret',
+      { expiresIn: process.env.JWT_EXPIRE || '24h' }
     );
 
-    console.log('Login successful, sending response');
+    console.log('Login successful for user:', user.email);
     res.status(200).json({
       success: true,
       token,
@@ -89,19 +96,12 @@ exports.login = async (req, res) => {
         role: user.role
       }
     });
-  } catch (err) {
-    console.error('Error in login:', err);
-    if (err.name === 'MongooseError' || err.name === 'MongoError') {
-      return res.status(500).json({
-        success: false,
-        message: 'Database connection error. Please try again.',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined
-      });
-    }
+  } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

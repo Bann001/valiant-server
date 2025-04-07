@@ -56,14 +56,19 @@ const reportRoutes = require('./routes/reports');
 const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
-    console.log('MongoDB URI format check:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
     
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+    // Use MONGODB_URI from environment if available, otherwise construct it
+    const MONGODB_URI = process.env.MONGODB_URI || `mongodb://root:${process.env.MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin`;
+    console.log('MongoDB URI format check:', MONGODB_URI ? 'URI is set' : 'URI is missing');
+    
+    const conn = await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
       socketTimeoutMS: 45000,
-      family: 4
+      family: 4,
+      retryWrites: true,
+      w: 'majority'
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -96,8 +101,8 @@ const connectDB = async () => {
       message: error.message,
       code: error.code
     });
-    console.error('MongoDB URI format:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
-    process.exit(1);
+    // Don't exit the process, just log the error
+    console.error('MongoDB connection failed, but server will continue running');
   }
 };
 
