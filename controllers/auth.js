@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 // @desc    Register user
 // @route   POST /api/users/register
@@ -43,8 +44,11 @@ exports.login = async (req, res) => {
       });
     }
 
+    console.log('Checking MongoDB connection status:', mongoose.connection.readyState);
+    
     // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    console.log('Attempting to find user with email:', email);
+    const user = await User.findOne({ email }).select('+password').maxTimeMS(5000);
     console.log('User found:', user ? { id: user._id, email: user.email } : 'No user found');
 
     if (!user) {
@@ -55,10 +59,7 @@ exports.login = async (req, res) => {
     }
 
     // For debugging, log the password comparison
-    console.log('Stored password hash:', user.password);
-    console.log('Provided password:', password);
-
-    // Check if password matches
+    console.log('Comparing passwords...');
     const isMatch = await bcrypt.compare(password, user.password);
     console.log('Password match result:', isMatch);
 
@@ -70,14 +71,14 @@ exports.login = async (req, res) => {
     }
 
     // Create token
+    console.log('Creating JWT token...');
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE }
     );
 
-    console.log('Login successful, token generated');
-
+    console.log('Login successful, sending response');
     res.status(200).json({
       success: true,
       token,
@@ -90,10 +91,17 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in login:', err);
+    if (err.name === 'MongooseError' || err.name === 'MongoError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Server error',
-      error: err.message
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
   }
 };

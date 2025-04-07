@@ -15,12 +15,23 @@ app.use(express.json());
 
 // Enable CORS with specific options
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5000',
-    'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
-    'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:5000',
+      'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io',
+      'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -30,7 +41,10 @@ app.use(cors({
 
 // Add CORS headers middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -77,8 +91,28 @@ const reportRoutes = require('./routes/reports');
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 15000, // Timeout after 15s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      family: 4 // Use IPv4, skip trying IPv6
+    });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+
+    // Add connection error handlers
+    mongoose.connection.on('error', err => {
+      console.error('MongoDB connection error:', err);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.log('MongoDB disconnected. Attempting to reconnect...');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected');
+    });
+
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
     console.error('MongoDB URI:', process.env.MONGODB_URI ? 'URI is set' : 'URI is missing');
