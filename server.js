@@ -68,8 +68,9 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use MongoDB connection string from Compass
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true';
+    // Use direct connection URL from MongoDB Compass
+    const MONGODB_PASSWORD = process.env.MONGODB_PASSWORD;
+    const MONGODB_URI = `mongodb://root:${MONGODB_PASSWORD}@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true`;
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
