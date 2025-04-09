@@ -12,7 +12,7 @@ const app = express();
 
 // Enable CORS - Before any routes
 app.use(cors({
-  origin: ['http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io', 'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'],
+  origin: true, // Allow all origins temporarily for debugging
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
@@ -24,15 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add security headers
 app.use((req, res, next) => {
-  // Set specific origin based on request
-  const origin = req.headers.origin;
-  if (origin && (
-    origin.includes('o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io') ||
-    origin.includes('vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io')
-  )) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -69,16 +61,8 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Construct MongoDB URI for Coolify internal network
-    const {
-      MONGODB_USER = 'root',
-      MONGODB_PASSWORD,
-      MONGODB_DB = 'valiant',
-      MONGODB_AUTH_SOURCE = 'admin'
-    } = process.env;
-
-    // Use internal Docker network name for MongoDB in Coolify
-    const MONGODB_URI = `mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb-database:27017/${MONGODB_DB}?authSource=${MONGODB_AUTH_SOURCE}`;
+    // Use MongoDB URI from environment variables
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true&tls=false';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -89,7 +73,9 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4
+      family: 4,
+      tls: false,
+      directConnection: true
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -168,6 +154,6 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
