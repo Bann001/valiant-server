@@ -69,7 +69,7 @@ const connectDB = async () => {
     console.log('Attempting to connect to MongoDB...');
     
     // Use internal MongoDB connection for Coolify
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb-database:27017/valiant';
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1Vjl59eWLsiceEGU37t9Ys5L9EjW@88.198.171.23:55432/?directConnection=true';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
