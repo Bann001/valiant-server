@@ -12,7 +12,7 @@ const app = express();
 
 // Enable CORS - Before any routes
 app.use(cors({
-  origin: true, // Allow all origins temporarily for debugging
+  origin: ['http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io', 'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
@@ -24,7 +24,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // Add security headers
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin && (
+    origin === 'http://o0soo4sg0k40s44k0ccwcksw.88.198.171.23.sslip.io' || 
+    origin === 'http://vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io'
+  )) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -61,21 +68,22 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use MongoDB URI from environment variables
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1VjI59eWLsiceEGU37t9Ys5L9EjW@vk4k4s04wcocgc8kkwo84k00.88.198.171.23.sslip.io:55432/valiant?authSource=admin&directConnection=true&tls=false';
+    // Use internal MongoDB connection for Coolify
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb-database:27017/valiant';
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
     console.log('Connecting to MongoDB:', sanitizedUri);
     
     const conn = await mongoose.connect(MONGODB_URI, {
+      user: process.env.MONGODB_USER || 'root',
+      pass: process.env.MONGODB_PASSWORD,
+      authSource: process.env.MONGODB_AUTH_SOURCE || 'admin',
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4,
-      tls: false,
-      directConnection: true
+      family: 4
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -113,9 +121,6 @@ const connectDB = async () => {
   }
 };
 
-// Connect to database
-connectDB();
-
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -152,8 +157,11 @@ app.use((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Start server
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on http://${HOST}:${PORT}`);
+  connectDB(); // Connect to MongoDB after server starts
 });
