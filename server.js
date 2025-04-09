@@ -69,23 +69,11 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Construct MongoDB URI from individual environment variables
-    const {
-      MONGODB_USER,
-      MONGODB_PASSWORD,
-      MONGODB_HOST,
-      MONGODB_PORT,
-      MONGODB_DB,
-      MONGODB_AUTH_SOURCE
-    } = process.env;
-
-    // Check required environment variables
-    if (!MONGODB_PASSWORD || !MONGODB_HOST) {
-      throw new Error('Required MongoDB environment variables are not defined');
+    // Use MongoDB URI from environment variables
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (!MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
     }
-
-    // Construct the MongoDB URI
-    const MONGODB_URI = `mongodb://${MONGODB_USER || 'root'}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT || '55432'}/${MONGODB_DB || 'valiant'}?authSource=${MONGODB_AUTH_SOURCE || 'admin'}&directConnection=true&tls=false`;
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -98,13 +86,12 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
       family: 4,
       tls: false,
-      authSource: MONGODB_AUTH_SOURCE || 'admin'
+      directConnection: true
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log('Database name:', conn.connection.name);
     console.log('Connection state:', conn.connection.readyState);
-    console.log('Using database:', MONGODB_DB || 'valiant');
 
     // Add connection error handlers
     mongoose.connection.on('error', err => {
