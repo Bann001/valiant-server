@@ -44,11 +44,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
 // File upload middleware
 const upload = multer({ dest: 'uploads/' });
 
@@ -62,6 +57,41 @@ const dashboardRoutes = require('./routes/dashboard');
 const vesselRoutes = require('./routes/vessels');
 const payrollRoutes = require('./routes/payroll');
 const reportRoutes = require('./routes/reports');
+
+// Mount API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/vessels', vesselRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// Root route for testing
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Valiant API Server',
+    status: 'running',
+    apiRoutes: {
+      auth: '/api/auth',
+      users: '/api/users',
+      employees: '/api/employees',
+      departments: '/api/departments',
+      attendance: '/api/attendance',
+      dashboard: '/api/dashboard',
+      vessels: '/api/vessels',
+      payroll: '/api/payroll',
+      reports: '/api/reports'
+    }
+  });
+});
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -120,22 +150,6 @@ const connectDB = async () => {
     setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
   }
 };
-
-// Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/vessels', vesselRoutes);
-app.use('/api/payroll', payrollRoutes);
-app.use('/api/reports', reportRoutes);
-
-// Route for testing the server
-app.get('/', (req, res) => {
-  res.json({ message: 'Valiant API Server' });
-});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
