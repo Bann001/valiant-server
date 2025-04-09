@@ -3,6 +3,14 @@ const router = express.Router();
 const { login, getMe } = require('../controllers/auth');
 const { protect } = require('../middleware/auth');
 
+// Handle CORS preflight requests
+router.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).end();
+});
+
 // Error handler middleware
 const asyncHandler = fn => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(error => {
@@ -27,4 +35,4 @@ router.use((req, res) => {
   });
 });
 
-module.exports = router; 
+module.exports = router;
