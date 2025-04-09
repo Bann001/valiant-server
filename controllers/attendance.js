@@ -5,20 +5,39 @@ const Employee = require('../models/Employee');
 // @access  Private
 exports.getAttendanceByDateRange = async (req, res) => {
   try {
-    const { startDate, endDate, vessel } = req.query;
+    const { startDate, endDate, vessel, employeeId } = req.query;
     
-    // In a real application, you would query your database for attendance records
-    // For demo purposes, we'll return mock data
+    // Validate dates
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide start and end dates'
+      });
+    }
+
+    // Build query
+    let query = {};
     
-    // Get all employees
-    const employees = await Employee.find().select('firstName lastName position');
+    // Add vessel filter if provided
+    if (vessel && vessel !== 'all') {
+      query.vessel = vessel;
+    }
+
+    // Add employee ID filter if provided
+    if (employeeId) {
+      query.employee_id = employeeId;
+    }
+
+    // Get employees based on filters
+    const employees = await Employee.find(query).select('employee_id firstName lastName position vessel');
     
     // Create attendance records for each employee
     const attendanceRecords = employees.map(employee => {
       return {
-        employeeId: employee._id,
+        employeeId: employee.employee_id,
         employeeName: `${employee.firstName} ${employee.lastName}`,
         position: employee.position,
+        vessel: employee.vessel,
         day: Math.random() > 0.3, // Random attendance data
         night: Math.random() > 0.7,
         otDay: Math.random() > 0.8,
