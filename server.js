@@ -69,11 +69,16 @@ const connectDB = async () => {
   try {
     console.log('Attempting to connect to MongoDB...');
     
-    // Use MongoDB URI from environment variables
-    const MONGODB_URI = process.env.MONGODB_URI;
-    if (!MONGODB_URI) {
-      throw new Error('MONGODB_URI is not defined in environment variables');
-    }
+    // Construct MongoDB URI for Coolify internal network
+    const {
+      MONGODB_USER = 'root',
+      MONGODB_PASSWORD,
+      MONGODB_DB = 'valiant',
+      MONGODB_AUTH_SOURCE = 'admin'
+    } = process.env;
+
+    // Use internal Docker network name for MongoDB in Coolify
+    const MONGODB_URI = `mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb-database:27017/${MONGODB_DB}?authSource=${MONGODB_AUTH_SOURCE}`;
     
     // Log connection attempt (without sensitive data)
     const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
@@ -84,9 +89,7 @@ const connectDB = async () => {
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      family: 4,
-      tls: false,
-      directConnection: true
+      family: 4
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
