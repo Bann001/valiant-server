@@ -1,54 +1,56 @@
+const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 
-// @desc    Get attendance records by date range
+// @desc    Get attendance records by date and filters
 // @route   GET /api/attendance
 // @access  Private
 exports.getAttendanceByDateRange = async (req, res) => {
   try {
-    const { startDate, endDate, vessel, employeeId } = req.query;
+    const { date, status, vessel } = req.query;
     
-    // Validate dates
-    if (!startDate || !endDate) {
+    // Validate required parameters
+    if (!date) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide start and end dates'
+        message: 'Date is required'
       });
     }
 
     // Build query
-    let query = {};
-    
-    // Add vessel filter if provided
+    const query = {
+      date: new Date(date)
+    };
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
     if (vessel && vessel !== 'all') {
       query.vessel = vessel;
     }
 
-    // Add employee ID filter if provided
-    if (employeeId) {
-      query.employee_id = employeeId;
-    }
+    // Get attendance records
+    const attendanceRecords = await Attendance.find(query)
+      .populate('employeeId', 'firstName lastName position vessel')
+      .sort({ date: -1 });
 
-    // Get employees based on filters
-    const employees = await Employee.find(query).select('employee_id firstName lastName position vessel');
-    
-    // Create attendance records for each employee
-    const attendanceRecords = employees.map(employee => {
-      return {
-        employeeId: employee.employee_id,
-        employeeName: `${employee.firstName} ${employee.lastName}`,
-        position: employee.position,
-        vessel: employee.vessel,
-        day: Math.random() > 0.3, // Random attendance data
-        night: Math.random() > 0.7,
-        otDay: Math.random() > 0.8,
-        otNight: Math.random() > 0.9,
-        np: Math.random() > 0.95
-      };
-    });
-    
+    // Transform data for frontend
+    const transformedData = attendanceRecords.map(record => ({
+      employeeId: record.employeeId.employeeId,
+      employeeName: `${record.employeeId.firstName} ${record.employeeId.lastName}`,
+      position: record.employeeId.position,
+      vessel: record.vessel,
+      status: record.status,
+      day: record.day,
+      night: record.night,
+      otDay: record.otDay,
+      otNight: record.otNight,
+      np: record.np
+    }));
+
     res.status(200).json({
       success: true,
-      data: attendanceRecords
+      data: transformedData
     });
   } catch (err) {
     res.status(500).json({
@@ -65,17 +67,51 @@ exports.getAttendanceByDateRange = async (req, res) => {
 exports.updateAttendance = async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, ...attendanceData } = req.body;
+    const { date, status, day, night, otDay, otNight, np, vessel } = req.body;
     
-    // In a real application, you would update the attendance record in your database
-    // For demo purposes, we'll just return the updated data
-    
+    // Validate required fields
+    if (!date || !status || !vessel) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date, status, and vessel are required'
+      });
+    }
+
+    // Update attendance record
+    const updatedRecord = await Attendance.findByIdAndUpdate(
+      id,
+      {
+        date,
+        status,
+        day: Boolean(day),
+        night: Boolean(night),
+        otDay: Boolean(otDay),
+        otNight: Boolean(otNight),
+        np: Boolean(np),
+        vessel
+      },
+      { new: true }
+    );
+
+    if (!updatedRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendance record not found'
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: {
-        employeeId: id,
-        date,
-        ...attendanceData
+        employeeId: updatedRecord.employeeId,
+        date: updatedRecord.date,
+        status: updatedRecord.status,
+        day: updatedRecord.day,
+        night: updatedRecord.night,
+        otDay: updatedRecord.otDay,
+        otNight: updatedRecord.otNight,
+        np: updatedRecord.np,
+        vessel: updatedRecord.vessel
       }
     });
   } catch (err) {
@@ -87,19 +123,60 @@ exports.updateAttendance = async (req, res) => {
   }
 };
 
-// @desc    Save bulk attendance records
-// @route   POST /api/attendance/bulk
+// @desc    Create new attendance record
+// @route   POST /api/attendance
 // @access  Private
-exports.saveBulkAttendance = async (req, res) => {
+exports.createAttendance = async (req, res) => {
   try {
-    const { records } = req.body;
-    
-    // In a real application, you would save the attendance records in your database
-    // For demo purposes, we'll just return success
-    
-    res.status(200).json({
+    const { employeeId, date, status, day, night, otDay, otNight, np, vessel } = req.body;
+
+    // Validate required fields
+    if (!employeeId || !date || !status || !vessel) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID, date, status, and vessel are required'
+      });
+    }
+
+    // Check if attendance record already exists for this employee on this date
+    const existingRecord = await Attendance.findOne({
+      employeeId,
+      date: new Date(date)
+    });
+
+    if (existingRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Attendance record already exists for this employee on this date'
+      });
+    }
+
+    // Create new attendance record
+    const attendance = await Attendance.create({
+      employeeId,
+      date: new Date(date),
+      status,
+      day: Boolean(day),
+      night: Boolean(night),
+      otDay: Boolean(otDay),
+      otNight: Boolean(otNight),
+      np: Boolean(np),
+      vessel
+    });
+
+    res.status(201).json({
       success: true,
-      message: `${records.length} attendance records saved successfully`
+      data: {
+        employeeId: attendance.employeeId,
+        date: attendance.date,
+        status: attendance.status,
+        day: attendance.day,
+        night: attendance.night,
+        otDay: attendance.otDay,
+        otNight: attendance.otNight,
+        np: attendance.np,
+        vessel: attendance.vessel
+      }
     });
   } catch (err) {
     res.status(500).json({
@@ -109,31 +186,3 @@ exports.saveBulkAttendance = async (req, res) => {
     });
   }
 };
-
-// @desc    Export attendance records
-// @route   GET /api/attendance/export
-// @access  Private
-exports.exportAttendance = async (req, res) => {
-  try {
-    const { startDate, endDate, vessel, format } = req.query;
-    
-    // In a real application, you would generate a CSV or Excel file with attendance data
-    // For demo purposes, we'll just return a mock CSV content
-    
-    const mockCSV = 'Employee ID,Employee Name,Position,Day,Night,OT Day,OT Night,NP\n' +
-                   '000100,Emilia De Rothschild,Admin,1,0,0,0,0\n' +
-                   '000200,Aisha Garcia,Fighter,1,1,0,0,0\n' +
-                   '000300,Akio Morishimoto,Support,1,1,1,1,0';
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=attendance_${startDate}_${endDate}.csv`);
-    
-    res.status(200).send(mockCSV);
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: 'Server Error',
-      error: err.message
-    });
-  }
-}; 

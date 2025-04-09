@@ -1,35 +1,51 @@
 const mongoose = require('mongoose');
 
 const attendanceSchema = new mongoose.Schema({
-  employee: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: [true, 'Employee is required']
+  employeeId: {
+    type: String,
+    required: true,
+    ref: 'Employee'
   },
   date: {
     type: Date,
-    required: [true, 'Date is required'],
-    default: Date.now
+    required: true
   },
   status: {
     type: String,
-    enum: ['Present', 'Absent', 'Late', 'On Leave'],
-    required: [true, 'Status is required']
+    enum: ['Active', 'On Leave', 'Terminated'],
+    default: 'Active'
   },
-  timeIn: {
-    type: Date
+  day: {
+    type: Boolean,
+    default: false
   },
-  timeOut: {
-    type: Date
+  night: {
+    type: Boolean,
+    default: false
   },
-  remarks: {
-    type: String
+  otDay: {
+    type: Boolean,
+    default: false
+  },
+  otNight: {
+    type: Boolean,
+    default: false
+  },
+  np: {
+    type: Boolean,
+    default: false
+  },
+  vessel: {
+    type: String,
+    required: true
   }
 }, {
   timestamps: true
 });
 
-// Create compound index for employee and date to prevent duplicate entries
-attendanceSchema.index({ employee: 1, date: 1 }, { unique: true });
+// Create indexes for better query performance
+attendanceSchema.index({ employeeId: 1, date: 1 });
+attendanceSchema.index({ date: 1 });
+attendanceSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
