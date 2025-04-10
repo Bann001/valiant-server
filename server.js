@@ -18,16 +18,6 @@ app.use(cors({
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
-app.use((req, res, next) => {
-  console.log('Request received:', {
-    method: req.method,
-    url: req.url,
-    origin: req.headers.origin,
-    headers: Object.keys(req.headers)
-  });
-  next();
-});
-
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -54,6 +44,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // File upload middleware
 const upload = multer({ dest: 'uploads/' });
 
@@ -68,41 +63,6 @@ const vesselRoutes = require('./routes/vessels');
 const payrollRoutes = require('./routes/payroll');
 const reportRoutes = require('./routes/reports');
 
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/vessels', vesselRoutes);
-app.use('/api/payroll', payrollRoutes);
-app.use('/api/reports', reportRoutes);
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-// Root route for testing
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Valiant API Server',
-    status: 'running',
-    apiRoutes: {
-      auth: '/api/auth',
-      users: '/api/users',
-      employees: '/api/employees',
-      departments: '/api/departments',
-      attendance: '/api/attendance',
-      dashboard: '/api/dashboard',
-      vessels: '/api/vessels',
-      payroll: '/api/payroll',
-      reports: '/api/reports'
-    }
-  });
-});
-
 // Connect to MongoDB
 const connectDB = async () => {
   try {
@@ -112,7 +72,7 @@ const connectDB = async () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1Vjl59eWLsiceEGU37t9Ys5L9EjW@88.198.171.23:55432/?directConnection=true';
     
     // Log connection attempt (without sensitive data)
-    const sanitizedUri = MONGODB_URI.replace(/:\/\/.*?@/, ':\/\/****@');
+    const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
     console.log('Connecting to MongoDB:', sanitizedUri);
     
     const conn = await mongoose.connect(MONGODB_URI, {
@@ -160,6 +120,22 @@ const connectDB = async () => {
     setTimeout(connectDB, 5000); // Try to reconnect after 5 seconds
   }
 };
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/departments', departmentRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/vessels', vesselRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Route for testing the server
+app.get('/', (req, res) => {
+  res.json({ message: 'Valiant API Server' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

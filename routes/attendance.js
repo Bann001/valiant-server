@@ -4,6 +4,8 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+console.log('Loaded controller:', attendanceController);
+
 // Get attendance records by date and filters
 router.get('/', protect, attendanceController.getAttendanceByDateRange);
 
