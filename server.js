@@ -18,6 +18,16 @@ app.use(cors({
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
 }));
 
+app.use((req, res, next) => {
+  console.log('Request received:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin,
+    headers: Object.keys(req.headers)
+  });
+  next();
+});
+
 // Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
