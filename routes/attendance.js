@@ -15,6 +15,7 @@ router.post('/', protect, attendanceController.createAttendance);
 
 // Save bulk attendance records
 router.post('/bulk', protect, attendanceController.saveBulkAttendance);
+router.get('/export', protect, attendanceController.exportAttendance);
 
 // Export attendance records
 router.get('/export', protect, attendanceController.exportAttendance);

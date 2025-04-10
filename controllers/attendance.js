@@ -185,4 +185,18 @@ exports.createAttendance = async (req, res) => {
       error: err.message
     });
   }
+
+  // @desc    Save bulk attendance
+// @route   POST /api/attendance/bulk
+// @access  Private
+exports.saveBulkAttendance = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Not implemented yet' });
+};
+
+// @desc    Export attendance
+// @route   GET /api/attendance/export
+// @access  Private
+exports.exportAttendance = async (req, res) => {
+  res.status(501).json({ success: false, message: 'Not implemented yet' });
+};
 };
