@@ -58,15 +58,6 @@ const vesselRoutes = require('./routes/vessels');
 const payrollRoutes = require('./routes/payroll');
 const reportRoutes = require('./routes/reports');
 
-// Health check endpoint for Coolify
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -77,6 +68,11 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/vessels', vesselRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/reports', reportRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // Root route for testing
 app.get('/', (req, res) => {
@@ -106,7 +102,7 @@ const connectDB = async () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://root:sx73lGozpnSKjlFhz50QlufgSqCxRLEwKvuc1Vjl59eWLsiceEGU37t9Ys5L9EjW@88.198.171.23:55432/?directConnection=true';
     
     // Log connection attempt (without sensitive data)
-    const sanitizedUri = MONGODB_URI.replace(/(?<=:\/\/).+?(?=@)/, '****');
+    const sanitizedUri = MONGODB_URI.replace(/:\/\/.*?@/, ':\/\/****@');
     console.log('Connecting to MongoDB:', sanitizedUri);
     
     const conn = await mongoose.connect(MONGODB_URI, {
@@ -181,6 +177,5 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on http://${HOST}:${PORT}`);
-  console.log('Health check endpoint available at /health');
   connectDB(); // Connect to MongoDB after server starts
 });
