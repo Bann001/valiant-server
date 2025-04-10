@@ -58,6 +58,15 @@ const vesselRoutes = require('./routes/vessels');
 const payrollRoutes = require('./routes/payroll');
 const reportRoutes = require('./routes/reports');
 
+// Health check endpoint for Coolify
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -68,11 +77,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/vessels', vesselRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/reports', reportRoutes);
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 // Root route for testing
 app.get('/', (req, res) => {
@@ -177,5 +181,6 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on http://${HOST}:${PORT}`);
+  console.log('Health check endpoint available at /health');
   connectDB(); // Connect to MongoDB after server starts
 });
