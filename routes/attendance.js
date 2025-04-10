@@ -1,22 +1,22 @@
 const express = require('express');
-const attendanceController = require('../controllers/attendance');
+const { getAttendanceByDateRange, updateAttendance, createAttendance, saveBulkAttendance, exportAttendance } = require('../controllers/attendance');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Get attendance records by date and filters
-router.get('/', protect, attendanceController.getAttendanceByDateRange);
+router.get('/', protect, getAttendanceByDateRange);
 
 // Update existing attendance record
-router.put('/:id', protect, attendanceController.updateAttendance);
+router.put('/:id', protect, updateAttendance);
 
 // Create new attendance record
-router.post('/', protect, attendanceController.createAttendance);
+router.post('/', protect, createAttendance);
 
 // Save bulk attendance records
-router.post('/bulk', protect, attendanceController.saveBulkAttendance);
+router.post('/bulk', protect, saveBulkAttendance);
 
 // Export attendance records
-router.get('/export', protect, attendanceController.exportAttendance);
+router.get('/export', protect, exportAttendance);
 
 module.exports = router;
